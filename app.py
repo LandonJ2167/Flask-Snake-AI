@@ -6,5 +6,17 @@ app = Flask(__name__)
 def home():
     return render_template('home.html')
 
+@app.route('/snake')
+def snake():
+    return render_template('snake.html')
+
+
+
+
 if __name__ == "__main__":
     app.run(debug=True, port=3000)
+
+# pip freeze > requirements.txt
+# pip install -r requirements.txt (For Python from requirements.txt)
+
+# npm install (for Tailwind from package.json)
