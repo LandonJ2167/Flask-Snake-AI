@@ -6,9 +6,7 @@
     <title>{% block title %} Flask App {% endblock %}</title>
     <link href="./static/output.css" rel="stylesheet">
 </head>
-
-<body class="flex h-screen w-full bg-gray-50">
-
+<body class="flex h-screen w-full bg-gray-900">
     <div class="flex flex-col w-64 bg-gray-800 shrink-0">
         <div class="flex items-center justify-center h-20 bg-gray-900">
             <span class="text-white font-bold text-center">Games</span>
@@ -16,20 +14,20 @@
         <div class="flex flex-col flex-1 overflow-y-auto">
             <nav class="flex-1 px-2 py-4 bg-gray-800 flex flex-col">
                 <a href="/" class="flex items-center px-4 py-2 text-gray-100 hover:bg-gray-700 rounded {{ 'underline' if request.path == '/' else '' }}">
-                    <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="m4 12 8-8 8 8M6 10.5V19a1 1 0 0 0 1 1h3v-3a1 1 0 0 1 1-1h2a1 1 0 0 1 1 1v3h3a1 1 0 0 0 1-1v-8.5" />
                     </svg>
                     Home
                 </a>
                 <a href="/snake" class="flex items-center px-4 py-2 mt-2 text-gray-100 hover:bg-gray-700 rounded {{ 'underline' if request.path == '/snake' else '' }}">
-                    <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor" xmlns="http://www.w3.org/2000/svg">
+                    <svg class="w-6 h-6 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 18.5A2.493 2.493 0 0 1 7.51 20H7.5a2.468 2.468 0 0 1-2.4-3.154 2.98 2.98 0 0 1-.85-5.274 2.468 2.468 0 0 1 .92-3.182 2.477 2.477 0 0 1 1.876-3.344 2.5 2.5 0 0 1 3.41-1.856A2.5 2.5 0 0 1 12 5.5m0 13v-13m0 13a2.493 2.493 0 0 0 4.49 1.5h.01a2.468 2.468 0 0 0 2.403-3.154 2.98 2.98 0 0 0 .847-5.274 2.468 2.468 0 0 0-.921-3.182 2.477 2.477 0 0 0-1.875-3.344A2.5 2.5 0 0 0 14.5 3 2.5 2.5 0 0 0 12 5.5m-8 5a2.5 2.5 0 0 1 3.48-2.3m-.28 8.551a3 3 0 0 1-2.953-5.185M20 10.5a2.5 2.5 0 0 0-3.481-2.3m.28 8.551a3 3 0 0 0 2.954-5.185" />
                     </svg>
                     Snake AI Game
                 </a>
                 <div class="mt-auto">
                     <a href="https://github.com/LandonJ2167/Flask-Snake-AI" class="flex items-center px-4 py-2 text-gray-100 hover:bg-gray-700 rounded">
-                        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg">
+                        <svg class="w-6 h-6 mr-2" fill="currentColor" viewBox="0 0 24 24">
                             <path fill-rule="evenodd" d="M12.006 2a9.847 9.847 0 0 0-6.484 2.44 10.32 10.32 0 0 0-3.393 6.17 10.48 10.48 0 0 0 1.317 6.955 10.045 10.045 0 0 0 5.4 4.418c.504.095.683-.223.683-.494 0-.245-.01-1.052-.014-1.908-2.78.62-3.366-1.21-3.366-1.21a2.711 2.711 0 0 0-1.11-1.5c-.907-.637.07-.621.07-.621.317.044.62.163.885.346.266.183.487.426.647.71.135.253.318.476.538.655a2.079 2.079 0 0 0 2.37.196c.045-.52.27-1.006.635-1.37-2.219-.259-4.554-1.138-4.554-5.07a4.022 4.022 0 0 1 1.031-2.75 3.77 3.77 0 0 1 .096-2.713s.839-.275 2.749 1.05a9.26 9.26 0 0 1 5.004 0c1.906-1.325 2.74-1.05 2.74-1.05.37.858.406 1.828.101 2.713a4.017 4.017 0 0 1 1.029 2.75c0 3.939-2.339 4.805-4.564 5.058a2.471 2.471 0 0 1 .679 1.897c0 1.372-.012 2.477-.012 2.814 0 .272.18.592.687.492a10.05 10.05 0 0 0 5.388-4.421 10.473 10.473 0 0 0 1.313-6.948 10.32 10.32 0 0 0-3.39-6.165A9.847 9.847 0 0 0 12.007 2Z" clip-rule="evenodd" />
                         </svg>
                         GitHub
@@ -38,13 +36,11 @@
             </nav>
         </div>
     </div>
-
     <!-- Main content -->
-    <div class="flex-1 overflow-y-auto p-4 text-white">
-        {% block content %}
-        
-        {% endblock %}
-    </div>
-
+<div class="flex-1 bg-gray-900 overflow-y-auto">
+    {% block content %}
+    
+    {% endblock %}
+</div>
 </body>
 </html>
