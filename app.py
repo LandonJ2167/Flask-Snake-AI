@@ -20,3 +20,6 @@ if __name__ == "__main__":
 # pip install -r requirements.txt (For Python from requirements.txt)
 
 # npm install (for Tailwind from package.json)
+
+# Recompile Tailwind
+# npx tailwindcss -i ./static/input.css -o ./static/output.css --watch
