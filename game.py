@@ -18,4 +18,4 @@ while True:
     screen.fill((0, 0, 0)) # Black Background
 
     pygame.display.flip()
-    clock.tick(10) # FPS
+    clock.tick(5) # FPS
