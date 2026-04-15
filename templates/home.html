@@ -1,6 +1,7 @@
 {% extends "base.html" %}
 {% block title %} Home {% endblock %}
 {% block content %}
+
 <style>
 @keyframes moveGrid {
     0% { background-position: 0 0; }
@@ -9,10 +10,10 @@
 .grid-bg {
     position: fixed;
     inset: 0;
-    left: 256px;
-    background-color: #020617;
-    background-image: radial-gradient(rgba(255,255,255,0.08) 1px, transparent 1px);
-    background-size: 20px 20px;
+    background-image:
+        linear-gradient(rgba(74, 222, 128, 0.05) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(74, 222, 128, 0.05) 1px, transparent 1px);
+    background-size: 40px 40px;
     animation: moveGrid 3s linear infinite;
     pointer-events: none;
     z-index: 0;

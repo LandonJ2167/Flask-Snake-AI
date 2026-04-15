@@ -10,6 +10,10 @@ def home():
 def snake():
     return render_template('snake.html')
 
+@app.route('/snakeai')
+def snakeai():
+    return render_template('snakeai.html')
+
 
 
 
