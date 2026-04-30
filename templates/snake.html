@@ -14,7 +14,7 @@
 <div class="relative z-10 flex flex-col items-center mt-2 gap-2">
     <div class="flex gap-8 text-white text-lg">
         <span>Score: <span id="scoreDisplay" class="text-green-400 font-bold">0</span></span>
-        <span>Best: <span id="bestDisplay" class="text-yellow-400 font-bold">0</span></span>
+        <span>Best: <span id="bestDisplay" class="text-green-400 font-bold">0</span></span>
     </div>
     <div class="flex gap-3 mt-1">
         <button id="btnManual" onclick="setMode('manual')"
@@ -37,7 +37,7 @@
 // Constants
 const GRID = 20;
 const CELL = 25;
-const SPEED_MANUAL = 120;
+const SPEED_MANUAL = 120;   // Normal game speed
 const SPEED_AI = 60;        // Plays faster when in AI mode
 
 const canvas = document.getElementById("c");
@@ -286,7 +286,7 @@ async function aiStep() {
         reward = distAfter < (Math.abs(snake[1][0]-food[0])+Math.abs(snake[1][1]-food[1])) ? 1 : -1;
     }
 
-    // Timeout similar to death to prevent looping
+    // Timeout similar to death to prevent model from looping forever
     if (!done && stepsSinceFood > MAX_STEPS_WITHOUT_FOOD) {
         reward = -10;
         gameState = "dead";
@@ -304,7 +304,7 @@ async function aiStep() {
     }
 }
 
-// Game Loop
+// Main Game Loop
 let lastTime = 0;
 
 async function gameLoop(time) {
