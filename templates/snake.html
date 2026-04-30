@@ -1,193 +1,366 @@
 {% extends "base.html" %}
-{% block title %} Snake {% endblock %}
+{% block title %} Snake AI {% endblock %}
 
 {% block content %}
 
 <!-- Header -->
 <div class="relative z-10 flex flex-col items-center text-center mt-6">
     <h1 class="text-6xl font-bold text-white mb-4 tracking-tight">
-        <span class="text-green-400">S</span>
-        N
-        <span class="text-green-400">A</span>
-        K
-        <span class="text-green-400">E</span>
+        Snake <span class="text-green-400">AI</span>
     </h1>
 </div>
 
-<!-- Game Canvas -->
-<div class="relative z-10 flex flex-col items-center mt-10">
-    <canvas id="c" class="border border-gray-700 rounded shadow-lg"></canvas>
-    <p class="text-gray-400 mt-4">Arrow keys / WASD to move</p>
+<!-- Score + Mode Controls -->
+<div class="relative z-10 flex flex-col items-center mt-2 gap-2">
+    <div class="flex gap-8 text-white text-lg">
+        <span>Score: <span id="scoreDisplay" class="text-green-400 font-bold">0</span></span>
+        <span>Best: <span id="bestDisplay" class="text-yellow-400 font-bold">0</span></span>
+        <span id="genLabel" class="hidden">Gen: <span id="genDisplay" class="text-blue-400 font-bold">1</span></span>
+    </div>
+    <div class="flex gap-3 mt-1">
+        <button id="btnManual" onclick="setMode('manual')"
+            class="px-4 py-1 rounded bg-green-500 text-black font-semibold text-sm">Manual</button>
+        <button id="btnAI" onclick="setMode('ai')"
+            class="px-4 py-1 rounded bg-gray-700 text-white font-semibold text-sm">AI</button>
+    </div>
+    <p id="aiStatus" class="text-gray-500 text-xs hidden">Training... (plays faster in AI mode)</p>
 </div>
 
+<!-- Game Canvas -->
+<div class="relative z-10 flex flex-col items-center mt-4">
+    <canvas id="c" class="border border-gray-700 rounded shadow-lg"></canvas>
+    <p id="controlHint" class="text-gray-400 mt-4">Arrow keys / WASD to move</p>
+</div>
+
+<!-- TensorFlow.js -->
+<script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
+
 <script>
+// ─── Constants ───────────────────────────────────────────────────────────────
 const GRID = 20;
 const CELL = 25;
-const SPEED = 120;
+const SPEED_MANUAL = 120;
+const SPEED_AI = 60;        // faster when AI plays
 
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
-
 canvas.width = GRID * CELL;
 canvas.height = GRID * CELL;
 
-// Directions
-const UP = [0, -1];
-const DOWN = [0, 1];
-const LEFT = [-1, 0];
-const RIGHT = [1, 0];
+const UP    = [0, -1];
+const DOWN  = [0,  1];
+const LEFT  = [-1, 0];
+const RIGHT = [1,  0];
+const DIRS  = [UP, RIGHT, DOWN, LEFT]; // clockwise order
 
-// Game state
-let snake;
-let direction;
-let nextDirection;
-let food;
-let score;
-let gameState;
+// ─── Game State ──────────────────────────────────────────────────────────────
+let snake, direction, nextDirection, food, score, gameState;
+let bestScore = 0;
+let generation = 1;
+let mode = "manual"; // "manual" | "ai"
 
-// Reset game
 function reset() {
-    snake = [[10,10], [9,10], [8,10]];
+    snake = [[10,10],[9,10],[8,10]];
     direction = RIGHT;
     nextDirection = RIGHT;
     score = 0;
     food = spawnFood();
+    document.getElementById("scoreDisplay").textContent = score;
 }
 
-// Spawn food
 function spawnFood() {
     while (true) {
         let x = Math.floor(Math.random() * GRID);
         let y = Math.floor(Math.random() * GRID);
-
-        let onSnake = snake.some(([sx, sy]) => sx === x && sy === y);
-        if (!onSnake) return [x, y];
+        if (!snake.some(([sx,sy]) => sx===x && sy===y)) return [x,y];
     }
 }
 
-// Update logic
+// ─── Game Logic ──────────────────────────────────────────────────────────────
 function update() {
     direction = nextDirection;
+    const head = snake[0];
+    const newHead = [head[0]+direction[0], head[1]+direction[1]];
 
-    let head = snake[0];
-    let newHead = [head[0] + direction[0], head[1] + direction[1]];
-
-    // Wall collision
-    if (
-        newHead[0] < 0 || newHead[0] >= GRID ||
-        newHead[1] < 0 || newHead[1] >= GRID
-    ) {
-        gameState = "dead";
-        return;
+    if (newHead[0]<0||newHead[0]>=GRID||newHead[1]<0||newHead[1]>=GRID) {
+        gameState = "dead"; return;
     }
-
-    // Self collision
-    if (snake.some(([x,y]) => x === newHead[0] && y === newHead[1])) {
-        gameState = "dead";
-        return;
+    if (snake.some(([x,y])=>x===newHead[0]&&y===newHead[1])) {
+        gameState = "dead"; return;
     }
 
     snake.unshift(newHead);
-
-    // Eat food
-    if (newHead[0] === food[0] && newHead[1] === food[1]) {
+    if (newHead[0]===food[0] && newHead[1]===food[1]) {
         score++;
+        document.getElementById("scoreDisplay").textContent = score;
+        if (score > bestScore) {
+            bestScore = score;
+            document.getElementById("bestDisplay").textContent = bestScore;
+        }
         food = spawnFood();
     } else {
         snake.pop();
     }
 }
 
-// Draw everything
+// ─── Draw ────────────────────────────────────────────────────────────────────
 function draw() {
-    // Background
     ctx.fillStyle = "#0a0c14";
-    ctx.fillRect(0, 0, canvas.width, canvas.height);
+    ctx.fillRect(0,0,canvas.width,canvas.height);
 
-    // Grid
     ctx.strokeStyle = "#1e2440";
-    for (let i = 0; i <= GRID; i++) {
-        ctx.beginPath();
-        ctx.moveTo(i * CELL, 0);
-        ctx.lineTo(i * CELL, canvas.height);
-        ctx.stroke();
-
-        ctx.beginPath();
-        ctx.moveTo(0, i * CELL);
-        ctx.lineTo(canvas.width, i * CELL);
-        ctx.stroke();
+    for (let i=0;i<=GRID;i++) {
+        ctx.beginPath(); ctx.moveTo(i*CELL,0); ctx.lineTo(i*CELL,canvas.height); ctx.stroke();
+        ctx.beginPath(); ctx.moveTo(0,i*CELL); ctx.lineTo(canvas.width,i*CELL); ctx.stroke();
     }
 
-    // Snake
     ctx.fillStyle = "#00dc82";
-    snake.forEach(([x,y]) => {
-        ctx.fillRect(x * CELL, y * CELL, CELL, CELL);
-    });
+    snake.forEach(([x,y]) => ctx.fillRect(x*CELL,y*CELL,CELL,CELL));
 
-    // Food
     ctx.fillStyle = "#ff4659";
-    ctx.fillRect(food[0] * CELL, food[1] * CELL, CELL, CELL);
+    ctx.fillRect(food[0]*CELL,food[1]*CELL,CELL,CELL);
 
-    // Overlay text
-    if (gameState === "menu") {
-        drawText("Press Space to Start");
-    } else if (gameState === "dead") {
-        drawText("Game Over - Press Space");
+    if (gameState==="menu")  drawText("Press Space to Start");
+    if (gameState==="dead" && mode==="manual") drawText("Game Over – Press Space");
+}
+
+function drawText(t) {
+    ctx.fillStyle="white"; ctx.font="20px Arial";
+    ctx.textAlign="center"; ctx.fillText(t,canvas.width/2,canvas.height/2);
+}
+
+// ─── Mode Switching ──────────────────────────────────────────────────────────
+function setMode(m) {
+    mode = m;
+    document.getElementById("btnManual").className =
+        "px-4 py-1 rounded font-semibold text-sm " +
+        (m==="manual" ? "bg-green-500 text-black" : "bg-gray-700 text-white");
+    document.getElementById("btnAI").className =
+        "px-4 py-1 rounded font-semibold text-sm " +
+        (m==="ai" ? "bg-blue-500 text-white" : "bg-gray-700 text-white");
+
+    document.getElementById("aiStatus").classList.toggle("hidden", m!=="ai");
+    document.getElementById("genLabel").classList.toggle("hidden", m!=="ai");
+    document.getElementById("controlHint").classList.toggle("hidden", m==="ai");
+
+    if (m==="ai") {
+        generation = 1;
+        document.getElementById("genDisplay").textContent = generation;
+        reset(); gameState = "playing";
+        stepsSinceFood = 0;
+    } else {
+        reset(); gameState = "menu";
     }
 }
 
-// Text helper
-function drawText(text) {
-    ctx.fillStyle = "white";
-    ctx.font = "20px Arial";
-    ctx.textAlign = "center";
-    ctx.fillText(text, canvas.width/2, canvas.height/2);
+// ─── DQN Agent ───────────────────────────────────────────────────────────────
+// State: 11 booleans
+//   [danger_straight, danger_right, danger_left,
+//    dir_up, dir_right, dir_down, dir_left,
+//    food_up, food_right, food_down, food_left]
+// Actions: 0=straight, 1=turn_right, 2=turn_left
+
+const STATE_SIZE  = 11;
+const ACTION_SIZE = 3;
+const GAMMA       = 0.9;
+const LR          = 0.001;
+const BATCH_SIZE  = 64;
+const MEMORY_MAX  = 5000;
+let   EPSILON     = 1.0;
+const EPSILON_MIN = 0.01;
+const EPSILON_DECAY = 0.995;
+
+// Simple replay memory
+let memory = [];
+
+function remember(s, a, r, s2, done) {
+    memory.push([s, a, r, s2, done]);
+    if (memory.length > MEMORY_MAX) memory.shift();
 }
 
-// Game loop
+// Build model
+function buildModel() {
+    const m = tf.sequential();
+    m.add(tf.layers.dense({inputShape:[STATE_SIZE], units:256, activation:'relu'}));
+    m.add(tf.layers.dense({units:256, activation:'relu'}));
+    m.add(tf.layers.dense({units:ACTION_SIZE, activation:'linear'}));
+    m.compile({optimizer: tf.train.adam(LR), loss:'meanSquaredError'});
+    return m;
+}
+
+const model = buildModel();
+
+// Get current direction index in DIRS array
+function dirIndex(d) {
+    return DIRS.findIndex(([dx,dy]) => dx===d[0] && dy===d[1]);
+}
+
+// Check if a cell is dangerous
+function isDanger(cell) {
+    const [x,y] = cell;
+    return x<0||x>=GRID||y<0||y>=GRID||snake.some(([sx,sy])=>sx===x&&sy===y);
+}
+
+// Build state array from current game
+function getState() {
+    const head = snake[0];
+    const di = dirIndex(direction);
+    const straight = DIRS[di];
+    const rightTurn = DIRS[(di+1)%4];
+    const leftTurn  = DIRS[(di+3)%4];
+
+    return [
+        // Danger
+        isDanger([head[0]+straight[0],  head[1]+straight[1]])  ? 1:0,
+        isDanger([head[0]+rightTurn[0], head[1]+rightTurn[1]]) ? 1:0,
+        isDanger([head[0]+leftTurn[0],  head[1]+leftTurn[1]])  ? 1:0,
+        // Direction
+        direction===UP    ?1:0,
+        direction===RIGHT ?1:0,
+        direction===DOWN  ?1:0,
+        direction===LEFT  ?1:0,
+        // Food relative
+        food[1] < head[1] ?1:0, // food up
+        food[0] > head[0] ?1:0, // food right
+        food[1] > head[1] ?1:0, // food down
+        food[0] < head[0] ?1:0, // food left
+    ];
+}
+
+// Convert action index → actual direction
+function applyAction(action) {
+    const di = dirIndex(direction);
+    let newDi;
+    if (action===0) newDi = di;           // straight
+    else if (action===1) newDi = (di+1)%4; // turn right
+    else newDi = (di+3)%4;                // turn left
+    nextDirection = DIRS[newDi];
+}
+
+// Choose action (epsilon-greedy)
+function chooseAction(state) {
+    if (Math.random() < EPSILON) return Math.floor(Math.random()*ACTION_SIZE);
+    return tf.tidy(() => {
+        const input = tf.tensor2d([state]);
+        const q = model.predict(input);
+        return q.argMax(1).dataSync()[0];
+    });
+}
+
+// Train on a random batch
+async function trainBatch() {
+    if (memory.length < BATCH_SIZE) return;
+    const batch = [];
+    for (let i=0;i<BATCH_SIZE;i++)
+        batch.push(memory[Math.floor(Math.random()*memory.length)]);
+
+    const states  = batch.map(b=>b[0]);
+    const states2 = batch.map(b=>b[3]);
+
+    const qCurr = tf.tidy(()=>model.predict(tf.tensor2d(states)).arraySync());
+    const qNext = tf.tidy(()=>model.predict(tf.tensor2d(states2)).arraySync());
+
+    const xs=[], ys=[];
+    for (let i=0;i<BATCH_SIZE;i++) {
+        const [s,a,r,s2,done] = batch[i];
+        const target = [...qCurr[i]];
+        target[a] = done ? r : r + GAMMA * Math.max(...qNext[i]);
+        xs.push(states[i]);
+        ys.push(target);
+    }
+
+    await model.fit(tf.tensor2d(xs), tf.tensor2d(ys), {epochs:1, verbose:0});
+
+    if (EPSILON > EPSILON_MIN) EPSILON *= EPSILON_DECAY;
+}
+
+// ─── AI Step ─────────────────────────────────────────────────────────────────
+let stepsSinceFood = 0;
+const MAX_STEPS_WITHOUT_FOOD = GRID * GRID; // prevent looping forever
+
+async function aiStep() {
+    const state = getState();
+    const action = chooseAction(state);
+    const prevScore = score;
+
+    applyAction(action);
+    update();
+    stepsSinceFood++;
+
+    const done = gameState === "dead";
+    let reward = 0;
+
+    if (done) {
+        reward = -10;
+    } else if (score > prevScore) {
+        reward = 10;
+        stepsSinceFood = 0;
+    } else {
+        // Small reward for moving toward food
+        const head = snake[0];
+        const distAfter  = Math.abs(head[0]-food[0]) + Math.abs(head[1]-food[1]);
+        reward = distAfter < (Math.abs(snake[1][0]-food[0])+Math.abs(snake[1][1]-food[1])) ? 1 : -1;
+    }
+
+    // Timeout = treat as death to prevent loops
+    if (!done && stepsSinceFood > MAX_STEPS_WITHOUT_FOOD) {
+        reward = -10;
+        gameState = "dead";
+    }
+
+    const state2 = getState();
+    remember(state, action, reward, state2, done || gameState==="dead");
+
+    await trainBatch();
+
+    if (gameState === "dead") {
+        generation++;
+        document.getElementById("genDisplay").textContent = generation;
+        reset();
+        gameState = "playing";
+        stepsSinceFood = 0;
+    }
+}
+
+// ─── Game Loop ───────────────────────────────────────────────────────────────
 let lastTime = 0;
 
-function gameLoop(time) {
-    if (gameState === "playing") {
-        if (time - lastTime > SPEED) {
+async function gameLoop(time) {
+    const speed = mode==="ai" ? SPEED_AI : SPEED_MANUAL;
+
+    if (gameState==="playing" && time-lastTime > speed) {
+        if (mode==="ai") {
+            await aiStep();
+        } else {
             update();
-            lastTime = time;
         }
+        lastTime = time;
     }
 
     draw();
     requestAnimationFrame(gameLoop);
 }
 
-// Controls
+// ─── Controls ────────────────────────────────────────────────────────────────
 document.addEventListener("keydown", e => {
+    if (mode !== "manual") return;
+
     const map = {
-        ArrowUp: UP, KeyW: UP,
-        ArrowDown: DOWN, KeyS: DOWN,
-        ArrowLeft: LEFT, KeyA: LEFT,
-        ArrowRight: RIGHT, KeyD: RIGHT
+        ArrowUp:UP, KeyW:UP,
+        ArrowDown:DOWN, KeyS:DOWN,
+        ArrowLeft:LEFT, KeyA:LEFT,
+        ArrowRight:RIGHT, KeyD:RIGHT
     };
-
     if (map[e.code]) {
-        let newDir = map[e.code];
-
-        if (
-            newDir[0] !== -direction[0] ||
-            newDir[1] !== -direction[1]
-        ) {
-            nextDirection = newDir;
-        }
+        const nd = map[e.code];
+        if (nd[0]!==-direction[0] || nd[1]!==-direction[1]) nextDirection = nd;
     }
-
-    if (e.code === "Space") {
-        if (gameState === "menu" || gameState === "dead") {
-            reset();
-            gameState = "playing";
-        }
+    if (e.code==="Space") {
+        if (gameState==="menu"||gameState==="dead") { reset(); gameState="playing"; }
     }
 });
 
-// Start
+// ─── Start ───────────────────────────────────────────────────────────────────
 reset();
 gameState = "menu";
 requestAnimationFrame(gameLoop);
