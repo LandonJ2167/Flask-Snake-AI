@@ -10,37 +10,35 @@
     </h1>
 </div>
 
-<!-- Score + Mode Controls -->
+<!-- Score and mode selection -->
 <div class="relative z-10 flex flex-col items-center mt-2 gap-2">
     <div class="flex gap-8 text-white text-lg">
         <span>Score: <span id="scoreDisplay" class="text-green-400 font-bold">0</span></span>
         <span>Best: <span id="bestDisplay" class="text-yellow-400 font-bold">0</span></span>
-        <span id="genLabel" class="hidden">Gen: <span id="genDisplay" class="text-blue-400 font-bold">1</span></span>
     </div>
     <div class="flex gap-3 mt-1">
         <button id="btnManual" onclick="setMode('manual')"
-            class="px-4 py-1 rounded bg-green-500 text-black font-semibold text-sm">Manual</button>
+            class="px-4 py-1 rounded bg-green-500 text-black font-semibold text-sm">Play</button>
         <button id="btnAI" onclick="setMode('ai')"
             class="px-4 py-1 rounded bg-gray-700 text-white font-semibold text-sm">AI</button>
     </div>
-    <p id="aiStatus" class="text-gray-500 text-xs hidden">Training... (plays faster in AI mode)</p>
 </div>
 
 <!-- Game Canvas -->
 <div class="relative z-10 flex flex-col items-center mt-4">
     <canvas id="c" class="border border-gray-700 rounded shadow-lg"></canvas>
-    <p id="controlHint" class="text-gray-400 mt-4">Arrow keys / WASD to move</p>
+
 </div>
 
-<!-- TensorFlow.js -->
+<!-- TensorFlow.js import -->
 <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.17.0/dist/tf.min.js"></script>
 
 <script>
-// ─── Constants ───────────────────────────────────────────────────────────────
+// Constants
 const GRID = 20;
 const CELL = 25;
 const SPEED_MANUAL = 120;
-const SPEED_AI = 60;        // faster when AI plays
+const SPEED_AI = 60;        // Plays faster when in AI mode
 
 const canvas = document.getElementById("c");
 const ctx = canvas.getContext("2d");
@@ -51,13 +49,12 @@ const UP    = [0, -1];
 const DOWN  = [0,  1];
 const LEFT  = [-1, 0];
 const RIGHT = [1,  0];
-const DIRS  = [UP, RIGHT, DOWN, LEFT]; // clockwise order
+const DIRS  = [UP, RIGHT, DOWN, LEFT];
 
-// ─── Game State ──────────────────────────────────────────────────────────────
+// Game State
 let snake, direction, nextDirection, food, score, gameState;
 let bestScore = 0;
-let generation = 1;
-let mode = "manual"; // "manual" | "ai"
+let mode = "manual";
 
 function reset() {
     snake = [[10,10],[9,10],[8,10]];
@@ -76,7 +73,7 @@ function spawnFood() {
     }
 }
 
-// ─── Game Logic ──────────────────────────────────────────────────────────────
+// Snake Game Logic
 function update() {
     direction = nextDirection;
     const head = snake[0];
@@ -103,7 +100,7 @@ function update() {
     }
 }
 
-// ─── Draw ────────────────────────────────────────────────────────────────────
+// Drawing
 function draw() {
     ctx.fillStyle = "#0a0c14";
     ctx.fillRect(0,0,canvas.width,canvas.height);
@@ -129,7 +126,7 @@ function drawText(t) {
     ctx.textAlign="center"; ctx.fillText(t,canvas.width/2,canvas.height/2);
 }
 
-// ─── Mode Switching ──────────────────────────────────────────────────────────
+// Mode Switching
 function setMode(m) {
     mode = m;
     document.getElementById("btnManual").className =
@@ -139,26 +136,13 @@ function setMode(m) {
         "px-4 py-1 rounded font-semibold text-sm " +
         (m==="ai" ? "bg-blue-500 text-white" : "bg-gray-700 text-white");
 
-    document.getElementById("aiStatus").classList.toggle("hidden", m!=="ai");
-    document.getElementById("genLabel").classList.toggle("hidden", m!=="ai");
-    document.getElementById("controlHint").classList.toggle("hidden", m==="ai");
-
     if (m==="ai") {
-        generation = 1;
-        document.getElementById("genDisplay").textContent = generation;
         reset(); gameState = "playing";
         stepsSinceFood = 0;
     } else {
         reset(); gameState = "menu";
     }
 }
-
-// ─── DQN Agent ───────────────────────────────────────────────────────────────
-// State: 11 booleans
-//   [danger_straight, danger_right, danger_left,
-//    dir_up, dir_right, dir_down, dir_left,
-//    food_up, food_right, food_down, food_left]
-// Actions: 0=straight, 1=turn_right, 2=turn_left
 
 const STATE_SIZE  = 11;
 const ACTION_SIZE = 3;
@@ -170,7 +154,7 @@ let   EPSILON     = 1.0;
 const EPSILON_MIN = 0.01;
 const EPSILON_DECAY = 0.995;
 
-// Simple replay memory
+// Memory
 let memory = [];
 
 function remember(s, a, r, s2, done) {
@@ -190,18 +174,18 @@ function buildModel() {
 
 const model = buildModel();
 
-// Get current direction index in DIRS array
+// Direction index
 function dirIndex(d) {
     return DIRS.findIndex(([dx,dy]) => dx===d[0] && dy===d[1]);
 }
 
-// Check if a cell is dangerous
+// Check if move is dangerous
 function isDanger(cell) {
     const [x,y] = cell;
     return x<0||x>=GRID||y<0||y>=GRID||snake.some(([sx,sy])=>sx===x&&sy===y);
 }
 
-// Build state array from current game
+// Build state array
 function getState() {
     const head = snake[0];
     const di = dirIndex(direction);
@@ -210,16 +194,16 @@ function getState() {
     const leftTurn  = DIRS[(di+3)%4];
 
     return [
-        // Danger
+        // Danger zones
         isDanger([head[0]+straight[0],  head[1]+straight[1]])  ? 1:0,
         isDanger([head[0]+rightTurn[0], head[1]+rightTurn[1]]) ? 1:0,
         isDanger([head[0]+leftTurn[0],  head[1]+leftTurn[1]])  ? 1:0,
-        // Direction
+        // Directions
         direction===UP    ?1:0,
         direction===RIGHT ?1:0,
         direction===DOWN  ?1:0,
         direction===LEFT  ?1:0,
-        // Food relative
+        // Food relative to head of snake
         food[1] < head[1] ?1:0, // food up
         food[0] > head[0] ?1:0, // food right
         food[1] > head[1] ?1:0, // food down
@@ -227,7 +211,7 @@ function getState() {
     ];
 }
 
-// Convert action index → actual direction
+// Convert action index to actual direction
 function applyAction(action) {
     const di = dirIndex(direction);
     let newDi;
@@ -237,7 +221,7 @@ function applyAction(action) {
     nextDirection = DIRS[newDi];
 }
 
-// Choose action (epsilon-greedy)
+// Choose action to take
 function chooseAction(state) {
     if (Math.random() < EPSILON) return Math.floor(Math.random()*ACTION_SIZE);
     return tf.tidy(() => {
@@ -247,7 +231,7 @@ function chooseAction(state) {
     });
 }
 
-// Train on a random batch
+// Train on random batch of memory
 async function trainBatch() {
     if (memory.length < BATCH_SIZE) return;
     const batch = [];
@@ -274,9 +258,9 @@ async function trainBatch() {
     if (EPSILON > EPSILON_MIN) EPSILON *= EPSILON_DECAY;
 }
 
-// ─── AI Step ─────────────────────────────────────────────────────────────────
+// AI logic
 let stepsSinceFood = 0;
-const MAX_STEPS_WITHOUT_FOOD = GRID * GRID; // prevent looping forever
+const MAX_STEPS_WITHOUT_FOOD = GRID * GRID; // prevent looping
 
 async function aiStep() {
     const state = getState();
@@ -296,13 +280,13 @@ async function aiStep() {
         reward = 10;
         stepsSinceFood = 0;
     } else {
-        // Small reward for moving toward food
+        // Smaller reward for moving TOWARDS food
         const head = snake[0];
         const distAfter  = Math.abs(head[0]-food[0]) + Math.abs(head[1]-food[1]);
         reward = distAfter < (Math.abs(snake[1][0]-food[0])+Math.abs(snake[1][1]-food[1])) ? 1 : -1;
     }
 
-    // Timeout = treat as death to prevent loops
+    // Timeout similar to death to prevent looping
     if (!done && stepsSinceFood > MAX_STEPS_WITHOUT_FOOD) {
         reward = -10;
         gameState = "dead";
@@ -314,15 +298,13 @@ async function aiStep() {
     await trainBatch();
 
     if (gameState === "dead") {
-        generation++;
-        document.getElementById("genDisplay").textContent = generation;
         reset();
         gameState = "playing";
         stepsSinceFood = 0;
     }
 }
 
-// ─── Game Loop ───────────────────────────────────────────────────────────────
+// Game Loop
 let lastTime = 0;
 
 async function gameLoop(time) {
@@ -341,7 +323,7 @@ async function gameLoop(time) {
     requestAnimationFrame(gameLoop);
 }
 
-// ─── Controls ────────────────────────────────────────────────────────────────
+// Controls
 document.addEventListener("keydown", e => {
     if (mode !== "manual") return;
 
@@ -360,7 +342,7 @@ document.addEventListener("keydown", e => {
     }
 });
 
-// ─── Start ───────────────────────────────────────────────────────────────────
+// Start Game
 reset();
 gameState = "menu";
 requestAnimationFrame(gameLoop);
