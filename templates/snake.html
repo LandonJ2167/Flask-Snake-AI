@@ -165,10 +165,10 @@ function remember(s, a, r, s2, done) {
 // Build model
 function buildModel() {
     const m = tf.sequential();
-    m.add(tf.layers.dense({inputShape:[STATE_SIZE], units:256, activation:'relu'}));
-    m.add(tf.layers.dense({units:256, activation:'relu'}));
-    m.add(tf.layers.dense({units:ACTION_SIZE, activation:'linear'}));
-    m.compile({optimizer: tf.train.adam(LR), loss:'meanSquaredError'});
+    m.add(tf.layers.dense({inputShape:[STATE_SIZE], units:256, activation:'relu'})); // Hidden layer
+    m.add(tf.layers.dense({units:256, activation:'relu'})); // Hidden layer
+    m.add(tf.layers.dense({units:ACTION_SIZE, activation:'linear'})); // Output layer
+    m.compile({optimizer: tf.train.adam(LR), loss:'meanSquaredError'}); // Compile model
     return m;
 }
 
@@ -182,7 +182,7 @@ function dirIndex(d) {
 // Check if move is dangerous
 function isDanger(cell) {
     const [x,y] = cell;
-    return x<0||x>=GRID||y<0||y>=GRID||snake.some(([sx,sy])=>sx===x&&sy===y);
+    return x<0||x>=GRID||y<0||y>=GRID||snake.some(([sx,sy])=>sx===x&&sy===y); // Off grid or hits self
 }
 
 // Build state array
@@ -225,9 +225,9 @@ function applyAction(action) {
 function chooseAction(state) {
     if (Math.random() < EPSILON) return Math.floor(Math.random()*ACTION_SIZE);
     return tf.tidy(() => {
-        const input = tf.tensor2d([state]);
-        const q = model.predict(input);
-        return q.argMax(1).dataSync()[0];
+        const input = tf.tensor2d([state]); // Convert state to tensor
+        const q = model.predict(input); // Output 3 values for the 3 actions (like [2, 0.5, 1])
+        return q.argMax(1).dataSync()[0]; // Choose action with highest value (chooses [2])
     });
 }
 
